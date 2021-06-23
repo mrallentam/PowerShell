@@ -1,0 +1,343 @@
+#######################################New Script###################################
+
+function Get-TimeStamp {
+    
+    return "[{0:MM/dd/yy} {0:HH:mm:ss}]" -f (Get-Date)
+    
+}
+
+
+$user=(whoami).split("\")[1]
+$domain=$args[0]
+$nested=$args[1]
+#$domain="EIS"
+
+$outfile = "c:\esae\$domain\logs\ESAE-$domain-logfile.txt"
+
+Write-Output "$(Get-TimeStamp) $user starting elevate.ps1 script" | Out-file $outfile -append
+
+Add-Type -AssemblyName Microsoft.VisualBasic
+$ttlhours = [string][Microsoft.VisualBasic.Interaction]::InputBox('Enter how long to elevate your account to domain admin in hours (up to 8 hours)', 'Domain Admin duration', '2')
+if ($ttlhours -eq "") { exit }
+if ([decimal]$ttlhours -gt 8 -or [decimal]$ttlhours -lt .01)
+{
+    [System.Windows.MessageBox]::Show('Error: You must specify a decimal value between 0.01 and 8 hours', 'Elevation error')
+    exit
+}
+$ttl=[int]([decimal]$ttlhours*60*60)
+$ttl=[string]$ttl
+
+
+
+$Searcher = New-Object DirectoryServices.DirectorySearcher
+$Searcher.PropertiesToLoad.AddRange(@("distinguishedname"))
+$Searcher.SearchScope = "Subtree"
+$Searcher.PageSize = 10
+#this filter returns the user
+$Filter = "(samaccountname=$user)"
+$Searcher.Filter = $Filter
+$SearchRoot = [adsi]("LDAP://eassf.com")
+$Searcher.SearchRoot = $SearchRoot
+$colResults = $Searcher.FindAll()
+
+$userDN=$colresults.properties.distinguishedname
+
+
+
+if ($nested -ieq 'nested')
+{
+	Write-Output "$(Get-TimeStamp) $user elevating privilege via nested group for $ttlhours hours" | Out-file $outfile -append
+
+	Set-ADObject -Identity "CN=eassf-$domain-da,ou=da-member-group,ou=sensitive,ou=sec,ou=grp,ou=PD,DC=eassf,DC=com" -Add @{'member'="<TTL=$ttl,$userdn>"}
+}
+else
+{
+	Write-Output "$(Get-TimeStamp) $user elevating privilege via Shadow Principal for $ttlhours hours" | Out-file $outfile -append
+
+	Set-ADObject -Identity "CN=$domain-Domain Admins,CN=Shadow Principal Configuration,CN=Services,CN=Configuration,DC=eassf,DC=com" -Add @{'member'="<TTL=$ttl,$userdn>"}
+}
+
+
+
+
+#######################################New Script###################################
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+$ErrorActionPreference = 'SilentlyContinue'
+$Error.Clear()
+
+function Get-TimeStamp {
+    
+    return "[{0:MM/dd/yy} {0:HH:mm:ss}]" -f (Get-Date)
+    
+}
+
+
+$user=(whoami).split("\")[1]
+$domain=$args[0]
+$nested=$args[1]
+
+$outfile = "c:\esae\$domain\logs\ESAE-$domain-logfile.txt"
+
+Write-Output "$(Get-TimeStamp) $user starting elevate.ps1 script" | Out-file $outfile -append
+
+#Main Form  #######################################################################
+$main_form = New-Object System.Windows.Forms.Form
+$main_form.Text = 'Domain Admin duration'
+$main_form.ControlBox = $False
+$main_form.Width = 400
+$main_form.Height = 300
+$main_form.AutoSize = $true
+
+# form status bar  ################################################################
+$objStatusBar = New-Object System.Windows.Forms.StatusBar
+$objStatusBar.Name = "statusBar"
+$objStatusBar.BackColor = "Yellow"
+$objStatusBar.ForeColor = "Red"
+$objStatusBar.Text = "Equifax Just-In-Time Domain Administration"
+$objStatusBar.Font = New-Object System.Drawing.Font("Microsoft Sans Serif",11,[System.Drawing.FontStyle]::Regular)
+$main_form.Controls.Add($objStatusBar)
+
+#Label-Username  ##################################################################
+$Elavated_Info = New-Object System.Windows.Forms.Label
+$Elavated_Info.Location = New-Object System.Drawing.Point(4,10)
+$Elavated_Info.Size = New-Object System.Drawing.Size(390,40)
+$Elavated_Info.Font = New-Object System.Drawing.Font("Microsoft Sans Serif",11,[System.Drawing.FontStyle]::Regular)
+$Elavated_Info.Text = 'Enter how long to elevate your account to domain admin in hours (up to 8 hours)'
+$Main_form.Controls.Add($Elavated_Info)
+
+
+#Text Box  ########################################################################
+$Elavated_var = New-Object System.Windows.Forms.TextBox
+$Elavated_var.Width = 390
+$Elavated_var.Location  = New-Object System.Drawing.Point(4,90)
+$main_form.Controls.Add($Elavated_var)
+
+#Button Members
+$Button_OK = New-Object System.Windows.Forms.Button
+$Button_OK.Location = New-Object System.Drawing.Size(4,170)
+$Button_OK.Size = New-Object System.Drawing.Size(120,30)
+$Button_OK.Text = "OK"
+$Button_OK.Font = New-Object System.Drawing.Font("Microsoft Sans Serif",11,[System.Drawing.FontStyle]::Regular)
+$main_form.Controls.Add($Button_OK)
+
+$Button_Cancle = New-Object System.Windows.Forms.Button
+$Button_Cancle.Location = New-Object System.Drawing.Size(250,170)
+$Button_Cancle.Size = New-Object System.Drawing.Size(120,30)
+$Button_Cancle.Text = "Cancel"
+$Button_Cancle.Font = New-Object System.Drawing.Font("Microsoft Sans Serif",11,[System.Drawing.FontStyle]::Regular)
+$main_form.Controls.Add($Button_Cancle)
+
+ Function Getinfo {
+        $Elavated_var.Text;
+        $Global:ttlhours = $Elavated_var.Text
+        $Main_form.Close();
+
+         }
+
+$Button_OK.Add_Click({Getinfo})
+
+ Function Cancle {
+        $Main_form.Close();
+         }
+
+$Button_Cancle.Add_Click({Cancle})
+
+$Main_form.Topmost = $true
+$main_form.StartPosition = "CenterScreen"
+$main_form.MinimizeBox = $True
+$main_form.MaximizeBox = $False
+$main_form.WindowState = "Normal"
+$main_form.ShowDialog()|Out-Null
+
+Add-Type -AssemblyName PresentationFramework
+
+
+if ($ttlhours -eq "") { exit }
+if ([decimal]$ttlhours -gt 8 -or [decimal]$ttlhours -lt .01)
+{
+    [System.Windows.MessageBox]::Show('Error: You must specify a decimal value between 0.01 and 8 hours', 'Elevation error')
+    #Write-Host -ForegroundColor Red "Error: You must specify a decimal value between 0.01 and 8 hours', 'Elevation error'"
+    Write-Output "$(Get-TimeStamp) $user elevate.ps1 script is not started due to time mismatch" | Out-file $outfile -append
+    exit
+}
+
+$ttl=[int]([decimal]$ttlhours*60*60)
+$ttl=[string]$ttl
+
+
+$adminuser = switch ($user) {
+   "z-axm773"  {"adam.missner.a"; break}
+   "z-axt314"   {"allen.tam.a"; break}
+   "z-exf91" {"erik.flamm.a"; break}
+   "zz-axm773"  {"adam.missner.a"; break}
+   "zz-axt314"   {"allen.tam.a"; break}
+   "zz-exf91" {"erik.flamm.a"; break}
+   default {"fail"; break}
+}
+
+
+
+
+
+$Searcher = New-Object DirectoryServices.DirectorySearcher
+$Searcher.PropertiesToLoad.AddRange(@("distinguishedname"))
+$Searcher.SearchScope = "Subtree"
+$Searcher.PageSize = 10
+#this filter returns the user
+$Filter = "(samaccountname=$adminuser)"
+$Searcher.Filter = $Filter
+$SearchRoot = [adsi]("LDAP://eassf.com")
+$Searcher.SearchRoot = $SearchRoot
+$colResults = $Searcher.FindAll()
+
+$userDN=$colresults.properties.distinguishedname
+
+
+Write-Output "$(Get-TimeStamp) $user elevating privilege via nested group for $ttlhours hours" | Out-file $outfile -append
+
+Set-ADObject -Identity "CN=eassf-eassf-da-shadow,ou=da-member-group,ou=sensitive,ou=sec,ou=grp,ou=PD,DC=eassf,DC=com" -Add @{'member'="<TTL=$ttl,$userdn>"}
+
+
+if($errormessage -ne $null){
+
+Write-Output "$(Get-TimeStamp) $user elevating privilege failed with below error via nested group for $ttlhours hours.ERROR_POWERSHELL:-$Error" | Out-file $outfile -append
+[System.Windows.MessageBox]::Show($error)
+
+}
+
+Remove-Variable ttlhours
+$Error.Clear()
+
+
+#######################################New Script###################################
+
+
+function Get-TimeStamp {
+    
+    return "[{0:MM/dd/yy} {0:HH:mm:ss}]" -f (Get-Date)
+    
+}
+
+
+$user=(whoami).split("\")[1]
+$domain=$args[0]
+$nested=$args[1]
+#$domain="EIS"
+
+$outfile = "c:\esae\$domain\logs\ESAE-$domain-logfile.txt"
+
+Write-Output "$(Get-TimeStamp) $user starting elevate.ps1 script" | Out-file $outfile -append
+
+Add-Type -AssemblyName Microsoft.VisualBasic
+$ttlhours = [string][Microsoft.VisualBasic.Interaction]::InputBox('Enter how long to elevate your account to domain admin in hours (up to 8 hours)', 'Domain Admin duration', '2')
+if ($ttlhours -eq "") { exit }
+if ([decimal]$ttlhours -gt 8 -or [decimal]$ttlhours -lt .01)
+{
+    [System.Windows.MessageBox]::Show('Error: You must specify a decimal value between 0.01 and 8 hours', 'Elevation error')
+    exit
+}
+$ttl=[int]([decimal]$ttlhours*60*60)
+$ttl=[string]$ttl
+
+
+
+$Searcher = New-Object DirectoryServices.DirectorySearcher
+$Searcher.PropertiesToLoad.AddRange(@("distinguishedname"))
+$Searcher.SearchScope = "Subtree"
+$Searcher.PageSize = 10
+#this filter returns the user
+$Filter = "(samaccountname=$user)"
+$Searcher.Filter = $Filter
+$SearchRoot = [adsi]("LDAP://eassf.com")
+$Searcher.SearchRoot = $SearchRoot
+$colResults = $Searcher.FindAll()
+
+$userDN=$colresults.properties.distinguishedname
+
+
+
+if ($nested -ieq 'nested')
+{
+	Write-Output "$(Get-TimeStamp) $user elevating privilege via nested group for $ttlhours hours" | Out-file $outfile -append
+
+	Set-ADObject -Identity "CN=eassf-$domain-da,ou=da-member-group,ou=sensitive,ou=sec,ou=grp,ou=PD,DC=eassf,DC=com" -Add @{'member'="<TTL=$ttl,$userdn>"}
+	Set-ADObject -Identity "CN=eassf-$domain-gpo,ou=da-member-group,ou=sensitive,ou=sec,ou=grp,ou=PD,DC=eassf,DC=com" -Add @{'member'="<TTL=$ttl,$userdn>"}
+}
+else
+{
+	Write-Output "$(Get-TimeStamp) $user elevating privilege via Shadow Principal for $ttlhours hours" | Out-file $outfile -append
+
+	Set-ADObject -Identity "CN=$domain-Domain Admins,CN=Shadow Principal Configuration,CN=Services,CN=Configuration,DC=eassf,DC=com" -Add @{'member'="<TTL=$ttl,$userdn>"}
+	Set-ADObject -Identity "CN=$domain-GPO,CN=Shadow Principal Configuration,CN=Services,CN=Configuration,DC=eassf,DC=com" -Add @{'member'="<TTL=$ttl,$userdn>"}
+}
+
+
+
+#######################################New Script###################################
+
+
+
+function Get-TimeStamp {
+    
+    return "[{0:MM/dd/yy} {0:HH:mm:ss}]" -f (Get-Date)
+    
+}
+
+
+$user=(whoami).split("\")[1]
+$domain=$args[0]
+$nested=$args[1]
+#$domain="EIS"
+
+$outfile = "c:\esae\$domain\logs\ESAE-$domain-logfile.txt"
+
+Write-Output "$(Get-TimeStamp) $user starting elevate.ps1 script" | Out-file $outfile -append
+
+Add-Type -AssemblyName Microsoft.VisualBasic
+$ttlhours = [string][Microsoft.VisualBasic.Interaction]::InputBox('Enter how long to elevate your account to domain admin in hours (up to 8 hours)', 'Domain Admin duration', '2')
+if ($ttlhours -eq "") { exit }
+if ([decimal]$ttlhours -gt 8 -or [decimal]$ttlhours -lt .01)
+{
+    [System.Windows.MessageBox]::Show('Error: You must specify a decimal value between 0.01 and 8 hours', 'Elevation error')
+    exit
+}
+$ttl=[int]([decimal]$ttlhours*60*60)
+$ttl=[string]$ttl
+
+
+
+$Searcher = New-Object DirectoryServices.DirectorySearcher
+$Searcher.PropertiesToLoad.AddRange(@("distinguishedname"))
+$Searcher.SearchScope = "Subtree"
+$Searcher.PageSize = 10
+#this filter returns the user
+$Filter = "(samaccountname=$user)"
+$Searcher.Filter = $Filter
+$SearchRoot = [adsi]("LDAP://eassf.com")
+$Searcher.SearchRoot = $SearchRoot
+$colResults = $Searcher.FindAll()
+
+$userDN=$colresults.properties.distinguishedname
+
+
+
+if ($nested -ieq 'nested')
+{
+	Write-Output "$(Get-TimeStamp) $user elevating privilege via nested group for $ttlhours hours" | Out-file $outfile -append
+
+	Set-ADObject -Identity "CN=eassf-$domain-da,ou=da-member-group,ou=sensitive,ou=sec,ou=grp,ou=PD,DC=eassf,DC=com" -Add @{'member'="<TTL=$ttl,$userdn>"}
+	Set-ADObject -Identity "CN=eassf-$domain-gpo,ou=da-member-group,ou=sensitive,ou=sec,ou=grp,ou=PD,DC=eassf,DC=com" -Add @{'member'="<TTL=$ttl,$userdn>"}
+}
+else
+{
+	Write-Output "$(Get-TimeStamp) $user elevating privilege via Shadow Principal for $ttlhours hours" | Out-file $outfile -append
+
+	Set-ADObject -Identity "CN=$domain-Domain Admins,CN=Shadow Principal Configuration,CN=Services,CN=Configuration,DC=eassf,DC=com" -Add @{'member'="<TTL=$ttl,$userdn>"}
+	Set-ADObject -Identity "CN=$domain-GPO,CN=Shadow Principal Configuration,CN=Services,CN=Configuration,DC=eassf,DC=com" -Add @{'member'="<TTL=$ttl,$userdn>"}
+}
+
+
+#######################################New Script###################################
+powershell.exe -windowstyle hidden c:\esae\elevate.ps1 C8P nested
