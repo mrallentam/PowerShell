@@ -1,0 +1,32 @@
+[
+  {
+    "id": "/subscriptions/4ac2fb37-ba1c-4c41-bedd-0453b93c3a5e/resourceGroups/RF1-QA-DEV2/providers/Microsoft.Resources/deployments/Microsoft.VirtualNetwork-20201215004131/operations/3815F9CC40FC22C0",
+    "operationId": "3815F9CC40FC22C0",
+    "properties": {
+      "provisioningOperation": "Create",
+      "provisioningState": "Succeeded",
+      "timestamp": "2020-12-15T08:46:35.4636069Z",
+      "duration": "PT6.3360482S",
+      "trackingId": "81352674-e6da-492f-9423-c23e39519e9b",
+      "serviceRequestId": "846e031f-c2fc-4cf1-8f7c-a6fde88956f0",
+      "statusCode": "OK",
+      "targetResource": {
+        "id": "/subscriptions/4ac2fb37-ba1c-4c41-bedd-0453b93c3a5e/resourceGroups/RF1-QA-DEV2/providers/Microsoft.Network/VirtualNetworks/REDFORESTVNET1",
+        "resourceType": "Microsoft.Network/VirtualNetworks",
+        "resourceName": "REDFORESTVNET1"
+      }
+    }
+  },
+  {
+    "id": "/subscriptions/4ac2fb37-ba1c-4c41-bedd-0453b93c3a5e/resourceGroups/RF1-QA-DEV2/providers/Microsoft.Resources/deployments/Microsoft.VirtualNetwork-20201215004131/operations/08585935848982241535",
+    "operationId": "08585935848982241535",
+    "properties": {
+      "provisioningOperation": "EvaluateDeploymentOutput",
+      "provisioningState": "Succeeded",
+      "timestamp": "2020-12-15T08:46:35.527071Z",
+      "duration": "PT6.3995123S",
+      "trackingId": "ec9ddc4e-4dc9-45f2-8ab4-becb27fa07c6",
+      "statusCode": "OK"
+    }
+  }
+]
