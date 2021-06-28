@@ -1,0 +1,44 @@
+#Software Required for WVD
+FSlogix
+https://aka.ms/fslogix_download
+
+Microsoft.RDInfra.RDAgent
+https://query.prod.cms.rt.microsoft.com/cms/api/am/binary/RWrmXv
+
+Microsoft.RDInfra.RDAgentBootLoader
+https://query.prod.cms.rt.microsoft.com/cms/api/am/binary/RWrxrH
+
+#configure NLA
+#credssp
+remove-item 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\System\CredSSP'
+
+#configure NLA
+New-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders' -NAME 'SecurityProviders'-value 'msapsspc.dll, schannel.dll, digest.dll, msnsspc.dll,credssp.dll' -propertytype 'string' -force
+New-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' -NAME 'Security Packages'-value 'tspkg' -propertytype 'multistring' -force
+New-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Kerberos\Parameters' -NAME 'TryIPSPN'-value '1' -propertytype 'dword' -force
+New-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services' -NAME 'authenticationlevel'-value '1' -propertytype 'dword' -force
+
+#ADD TO DOMAIN
+$creds=get-credential
+add-computer -domainname $domain -credential $creds
+shutdown /r /f /t 30
+
+#add local group member
+Add-LocalGroupMember -group "Remote Desktop Users" -member "eassfq\EAQ-AD-RDSUsers"
+
+#configure agents
+$token="get host pool registration token"
+
+$path="hklm:\software\microsoft\rdinfraagent"
+Remove-ItemProperty -Path $path -Name "isregistered" -Force
+Remove-ItemProperty -Path $path -Name "RegistrationToken" -Force
+new-itemproperty -path $path -name IsRegistered -value 0 -propertytype dword
+new-itemproperty -path $path -name RegistrationToken -value $token -propertytype string
+
+$WinstationsKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations'
+New-ItemProperty -Path $WinstationsKey -Name 'fUseUdpPortRedirector' -ErrorAction:SilentlyContinue -PropertyType:dword -Value 1 -Force
+New-ItemProperty -Path $WinstationsKey -Name 'UdpPortNumber' -ErrorAction:SilentlyContinue -PropertyType:dword -Value 3390 -Force
+
+#Get Thumb print of the host's certificate intendded for rdp add to the paste below
+$thumbprint="Thumbprint"
+wmic /namespace:\\root\cimv2\TerminalServices PATH Win32_TSGeneralSetting Set SSLCertificateSHA1Hash=$thumbprint
