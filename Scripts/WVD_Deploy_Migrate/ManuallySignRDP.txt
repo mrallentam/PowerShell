@@ -1,7 +1,0 @@
-get the host server's certificate and install on your own local computer
-get the thumbprint
-
-run the followig
-rdpsign /sha256 (thumbprint) (path to .rdp file)
-
-
