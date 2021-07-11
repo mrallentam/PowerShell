@@ -1,0 +1,153 @@
+{
+  "id": "/subscriptions/4ac2fb37-ba1c-4c41-bedd-0453b93c3a5e/resourceGroups/RF1-QA-DEV2/providers/Microsoft.Resources/deployments/Microsoft.VirtualNetwork-20201215004131",
+  "name": "Microsoft.VirtualNetwork-20201215004131",
+  "type": "Microsoft.Resources/deployments",
+  "tags": {
+    "primaryResourceId": "/subscriptions/4ac2fb37-ba1c-4c41-bedd-0453b93c3a5e/resourceGroups/RF1-QA-DEV2/providers/Microsoft.Network/virtualNetworks/REDFORESTVNET1",
+    "marketplaceItemId": "Microsoft.VirtualNetwork"
+  },
+  "properties": {
+    "templateHash": "8580368204693170821",
+    "parameters": {
+      "location": {
+        "type": "String",
+        "value": "westus2"
+      },
+      "virtualNetworkName": {
+        "type": "String",
+        "value": "REDFORESTVNET1"
+      },
+      "resourceGroup": {
+        "type": "String",
+        "value": "RF1-QA-DEV2"
+      },
+      "addressSpaces": {
+        "type": "Array",
+        "value": [
+          "10.1.0.0/16",
+          "192.168.0.0/24"
+        ]
+      },
+      "ipv6Enabled": {
+        "type": "Bool",
+        "value": false
+      },
+      "subnetCount": {
+        "type": "Int",
+        "value": 9
+      },
+      "subnet0_name": {
+        "type": "String",
+        "value": "RFSUB1"
+      },
+      "subnet0_addressRange": {
+        "type": "String",
+        "value": "192.168.0.0/27"
+      },
+      "subnet1_name": {
+        "type": "String",
+        "value": "RFSUB2"
+      },
+      "subnet1_addressRange": {
+        "type": "String",
+        "value": "192.168.0.32/27"
+      },
+      "subnet2_name": {
+        "type": "String",
+        "value": "RFSUB3"
+      },
+      "subnet2_addressRange": {
+        "type": "String",
+        "value": "192.168.0.64/27"
+      },
+      "subnet3_name": {
+        "type": "String",
+        "value": "RFSUB4"
+      },
+      "subnet3_addressRange": {
+        "type": "String",
+        "value": "192.168.0.96/27"
+      },
+      "subnet4_name": {
+        "type": "String",
+        "value": "RFSUB5"
+      },
+      "subnet4_addressRange": {
+        "type": "String",
+        "value": "192.168.0.128/27"
+      },
+      "subnet5_name": {
+        "type": "String",
+        "value": "RFSUB6"
+      },
+      "subnet5_addressRange": {
+        "type": "String",
+        "value": "192.168.0.160/27"
+      },
+      "subnet6_name": {
+        "type": "String",
+        "value": "RFSUB7"
+      },
+      "subnet6_addressRange": {
+        "type": "String",
+        "value": "192.168.0.192/27"
+      },
+      "subnet7_name": {
+        "type": "String",
+        "value": "RFSUB8"
+      },
+      "subnet7_addressRange": {
+        "type": "String",
+        "value": "192.168.0.224/28"
+      },
+      "subnet8_name": {
+        "type": "String",
+        "value": "RFSUB9"
+      },
+      "subnet8_addressRange": {
+        "type": "String",
+        "value": "192.168.0.240/28"
+      },
+      "ddosProtectionPlanEnabled": {
+        "type": "Bool",
+        "value": false
+      },
+      "firewallEnabled": {
+        "type": "Bool",
+        "value": false
+      },
+      "bastionEnabled": {
+        "type": "Bool",
+        "value": false
+      }
+    },
+    "mode": "Incremental",
+    "debugSetting": {
+      "detailLevel": "None"
+    },
+    "provisioningState": "Succeeded",
+    "timestamp": "2020-12-15T08:46:35.5448777Z",
+    "duration": "PT8.2913714S",
+    "correlationId": "0283e68a-5adb-4e08-aee7-96cb71397814",
+    "providers": [
+      {
+        "namespace": "Microsoft.Network",
+        "resourceTypes": [
+          {
+            "resourceType": "VirtualNetworks",
+            "locations": [
+              "westus2"
+            ]
+          }
+        ]
+      }
+    ],
+    "dependencies": [],
+    "outputResources": [
+      {
+        "id": "/subscriptions/4ac2fb37-ba1c-4c41-bedd-0453b93c3a5e/resourceGroups/RF1-QA-DEV2/providers/Microsoft.Network/VirtualNetworks/REDFORESTVNET1"
+      }
+    ],
+    "validationLevel": "Template"
+  }
+}
