@@ -10,3 +10,6 @@ The second step in the configuration is to grant a security group access to view
 
 Set-AdmPwdReadPasswordPermission –Identity "Contoso Computers" –AllowedPrincipals "contoso.com\LAPSAdmins"
 Set-AdmPwdResetPasswordPermission –Identity "Contoso Computers" –AllowedPrincipals "contoso.com\LAPSAdmins"
+
+
+https://mega.nz/folder/XcNQlJBT#7-RpG-iq8kYqvFyHZRnhMQ
