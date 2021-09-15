@@ -1,0 +1,12 @@
+mkdir c:\temp\azdminpwd
+$url="link to azure storage"
+$localfile="c:\temp\admpwd"
+start-bitstransfer -source $url -desination $localfile
+
+
+
+Set-AdmPwdComputerSelfPermission –Identity "Contoso Computers"
+The second step in the configuration is to grant a security group access to view/reset local passwords, This is performed by running the following 2 commands.
+
+Set-AdmPwdReadPasswordPermission –Identity "Contoso Computers" –AllowedPrincipals "contoso.com\LAPSAdmins"
+Set-AdmPwdResetPasswordPermission –Identity "Contoso Computers" –AllowedPrincipals "contoso.com\LAPSAdmins"
