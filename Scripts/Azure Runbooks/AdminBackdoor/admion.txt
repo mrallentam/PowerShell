@@ -12,4 +12,4 @@ Set-AdmPwdReadPasswordPermission –Identity "Contoso Computers" –AllowedPrinc
 Set-AdmPwdResetPasswordPermission –Identity "Contoso Computers" –AllowedPrincipals "contoso.com\LAPSAdmins"
 
 
-https://mega.nz/folder/XcNQlJBT#7-RpG-iq8kYqvFyHZRnhMQ
+
