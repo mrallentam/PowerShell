@@ -1,0 +1,382 @@
+
+#new windows server hardening script
+#Continue on error
+$ErrorActionPreference = 'silentlycontinue'
+
+#Require elivation for script run
+#Requires -RunAsAdministrator
+
+#Set Directory to PSScriptRoot
+mkdir c:\temp\scriptroot
+Set-Location -path 'c:\temp\scriptroot'
+
+$rep=Invoke-WebRequest https://go.microsoft.com/fwlink/?linkid=2088631 -outfile .\ndp48-x86-x64-allos-enu.exe. -MaximumRedirection 1 
+$rep.Links | where {$_.innerText -eq "click here"} |select -expand href 
+
+invoke-webrequest "https://download.visualstudio.microsoft.com/download/pr/be3014b3-8294-4152-9700-a35a8722c45b/e846545cbe6d18578ad48ebd448e09f3/dotnet-runtime-3.1.19-win-x64.exe" -outfile .\dotnet-runtime-3.1.19-win-x64.exe
+
+invoke-webrequest "https://download.visualstudio.microsoft.com/download/pr/78fa839b-2d86-4ece-9d97-5b9fe6fb66fa/10d406c0d247470daa80691d3b3460a6/windowsdesktop-runtime-5.0.10-win-x64.exe" -outfile .\windowsdesktop-runtime-5.0.10-win-x64.exe
+
+invoke-webrequest "https://matsontemptorage.blob.core.windows.net/tempcontainer1/CSBP_WindowsServer2019.ps1" -outfile .\CSBP_WindowsServer2019.ps1
+invoke-webrequest "https://matsontemptorage.blob.core.windows.net/tempcontainer1/update-ps7modulepath.ps1" -outfile  .\update-ps7modulepath.ps1
+
+#link download to samari10
+invoke-webrequest "https://matsontemptorage.blob.core.windows.net/tempcontainer1/update-ps7modulepath.ps1" -outfile  .\update-ps7modulepath.ps1
+
+
+.\ndp48-x86-x64-allos-enu.exe /q /norestart
+
+start-sleep -seconds 5
+
+Do {
+$npd = get-process|where-object {$_.name -like "*ndp48-x86-x64-allos-enu*"}
+}until ($npd -eq $null)
+
+.\dotnet-runtime-3.1.19-win-x64.exe /q /norestart
+start-sleep -seconds 5
+
+Do {
+$dotnetcore= get-process|where-object {$_.name -like "*dotnet-runtime-3.1.19-win-x64*"}
+}until ($dotnetcore -eq $null)
+
+.\windowsdesktop-runtime-5.0.10-win-x64.exe /q /norestart
+start-sleep -seconds 5
+
+Do {
+$dotnet= get-process|where-object {$_.name -like "*windowsdesktop-runtime-5.0.10-win-x64*"}
+}until ($dotnet -eq $null)
+
+#Patch
+import-module windowsupdateprovider
+$updates = Start-wuscan
+foreach ($update in $updates){install-wuupdates -updates $update}
+
+#Configure Secure Communication
+REG ADD "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2" /f
+REG ADD "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Client" /f
+REG ADD "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Client" /v DisabledByDefault /d 0 /f
+REG ADD "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Client" /v Enabled /t reg_dword /d 1 /f
+REG ADD "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server" /f
+REG ADD "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server" /v DisabledByDefault /d 0 /f
+REG ADD "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server" /v Enabled /t reg_dword /d 1 /f
+REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETFramework\v2.0.50727" /v SystemDefaultTlsVersions /t REG_DWORD /d 00000001 /f
+REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETFramework\v2.0.50727" /v SchUseStrongCrypto /t REG_DWORD /d 00000001 /f
+REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETFramework\v4.0.30319" /v SystemDefaultTlsVersions /t REG_DWORD /d 00000001 /f
+REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETFramework\v4.0.30319" /v SchUseStrongCrypto /t REG_DWORD /d 00000001 /f
+REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\.NETFramework\v2.0.50727" /v SystemDefaultTlsVersions /t REG_DWORD /d 00000001 /f
+REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\.NETFramework\v2.0.50727" /v SchUseStrongCrypto /t REG_DWORD /d 00000001 /f
+REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319" /v SystemDefaultTlsVersions /t REG_DWORD /d 00000001 /f
+REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319" /v SchUseStrongCrypto /t REG_DWORD /d 00000001 /f
+REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\WinHttp" /v DefaultSecureProtocols /t REG_DWORD /d 0xAA0 /f
+REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Internet Settings\WinHttp" /v DefaultSecureProtocols /t REG_DWORD /d 0xAA0 /f
+REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\WinHttp" /v DefaultSecureProtocols /t REG_DWORD /d 0xAA0 /f
+REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Internet Settings\WinHttp" /v DefaultSecureProtocols /t REG_DWORD /d 0xAA0 /f
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters" /v DisabledComponents /t reg_dword /d 0x20 /f
+
+invoke-webrequest https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/d50edaf7-3482-4add-80f3-4c208b971c0e/MicrosoftEdgeEnterpriseX64.msi -outfile .\MicrosoftEdgeEnterpriseX64.msi
+
+msiexec /i MicrosoftEdgeEnterpriseX64.msi /quiet /passive
+
+dism /online /Disable-Feature /FeatureName:Internet-Explorer-Optional-amd64 /norestart
+
+
+#run samari10
+ 
+set-psreporitory -name psgallery -installationpolicy trusted
+
+install-module netcease -force
+
+Set-NetSessionEnumPermission
+
+#install dsc modules
+install-module AuditPolicyDSC
+install-module ComputerManagementDsc
+install-module SecurityPolicyDsc
+install-module az -force
+update-module -force
+
+#get and download cis_windowsserver2019_v110.ps1
+$scripturl="https://github.com/mrallentam/PowerShell/blob/master/Scripts/DoDStigScripts/Hardening/CIS_WindowsServer2019_v110.ps1"
+$file="C:\temp\CIS_WindowsServer2019_v110.ps1"
+invoke-webrequest -uri $scripturl -outfile $file
+
+#unblock download script
+unblock-file -path $file
+
+#compile MOF
+& '$file'
+
+#Increase the maximum envelope size
+Set-Item -Path WSMan:\localhost\MaxEnvelopeSizeKb -Value 2048
+
+#Enable Windows Remote management
+winrm quickconfig
+
+Start-DscConfiguration -Path .\CIS_WindowsServer2019_v110  -Force -Verbose -Wait
+
+#reboot
+shutdown /r /f /t 0
+
+
+<#
+#Chrome Hardening
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google" /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Google\Chrome" /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Google\Chrome" /v RemoteAccessHostFirewallTraversal /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v DefaultGeolocationSetting /t Reg_dword /d 2 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v DefaultPopupsSetting /t reg_dword /d 2 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v DefaultNotificationsSetting /t reg_dword /d 2 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v DefaultNotificationsSetting /t reg_dword /d 2 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\ExtensionInstallBlacklist" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\ExtensionInstallBlacklist" /v 1 /t reg_sz /d * /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\ExtensionInstallBlocklist" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\ExtensionInstallBlocklist" /v 1 /t reg_sz /d * /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\ExtensionInstallWhitelist" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\ExtensionInstallWhitelist" /v 1 /t reg_sz /d oiigbmnaadbkfbmpbfijlflahbdbdgdf /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\ExtensionInstallAllowlist" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\ExtensionInstallAllowlist" /v 1 /t reg_sz /d oiigbmnaadbkfbmpbfijlflahbdbdgdf /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v DefaultSearchProviderName /t reg_sz /d "Google Encrypted" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v DefaultSearchProviderSearchURL /t reg_sz /d https://encrypted.google.com/search? /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v DefaultSearchProviderEnabled /t reg_dword /d 1 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v PasswordManagerAllowShowPasswords /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v PasswordManagerEnabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v AuthSchemes /t reg_sz /d Negotiate /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v AllowOutdatedPlugins /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v AlwaysAuthorizePlugins /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v BlockThirdPartyCookies /t reg_dword /d 1 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v BackgroundModeEnabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v DisableSpdy /t reg_dword /d 1 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v Disable3DAPIs /t reg_dword /d 1 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v SyncDisabled /t reg_dword /d 1 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\DisabledSchemes" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\DisabledSchemes" /v 1 /t reg_sz /d file /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\DisabledSchemes" /v 2 /t reg_sz /d javascript /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v AutoFillEnabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v CloudPrintProxyEnabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v SyncDisabled /t reg_dword /d 1 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v DnsPrefetchingEnabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v MetricsReportingEnabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v SearchSuggestEnabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v CloudPrintSubmitEnabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v ImportSavedPasswords /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v IncognitoModeAvailability /t reg_dword /d 1 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v DiskCacheDir /t reg_sz /d "${local_app_data}\Chrome\Cache" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v UserDataDir /t reg_sz /d "${roaming_app_data}\Chrome\Data" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\DisabledPlugins" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\DisabledPlugins" /v 1 /t reg_sz /d * /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\EnabledPlugins" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\EnabledPlugins" /v 0 /t reg_sz /d * /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v DefaultPluginsSetting /t reg_dword /d 2 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v SavingBrowserHistoryDisabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v SafeBrowsingEnabled /t reg_dword /d 1 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v EnableOnlineRevocationChecks /t reg_dword /d 1 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v DisablePluginFinder /t reg_dword /d 1 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\URLBlocklist" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome\URLBlocklist" /v 1 /t reg_sz /d javascript://* /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v NetworkPredictionOptions /t reg_dword /d 2 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v SafeBrowsingProtectionLevel /t reg_dword /d 2 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v AllowDeletingBrowserHistory /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v PromptForDownloadLocation /t reg_dword /d 1 /f 
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v DownloadRestrictions /t reg_dword /d 2 /f 
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v SafeBrowsingExtendedReportingEnabled /t reg_dword /d 0 /f 
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v DefaultWebUsbGuardSetting /t reg_dword /d 2 /f 
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v ChromeCleanupEnabled /t reg_dword /d 0 /f 
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v ChromeCleanupReportingEnabled /t reg_dword /d 0 /f  
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v EnableMediaRouter /t reg_dword /d 0 /f  
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v AutoplayAllowed /t reg_dword /d 0 /f  
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v UrlKeyedAnonymizedDataCollectionEnabled /t reg_dword /d 0 /f  
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v WebRtcEventLogCollectionAllowed /t reg_dword /d 0 /f  
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v DeveloperToolsAvailability  /t reg_dword /d 2 /f  
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v BrowserGuestModeEnabled /t reg_dword /d 0 /f  
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v AutofillCreditCardEnabled /t reg_dword /d 0 /f  
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v AutofillAddressEnabled /t reg_dword /d 0 /f  
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v ImportAutofillFormData /t reg_dword /d 0 /f  
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Google\Chrome" /v QuicAllowed /t reg_dword /d 0 /f  
+#>
+
+
+#Edge Hardening
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v PreventSmartScreenPromptOverride /t reg_dword /d 1 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v PreventSmartScreenPromptOverrideForFiles /t reg_dword /d 1 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v InPrivateModeAvailability /t reg_dword /d 1 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v BackgroundModeEnabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v DefaultPopupsSetting /t reg_dword /d 2 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v SyncDisabled /t reg_dword /d 1 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v NetworkPredictionOptions /t reg_dword /d 2 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v SearchSuggestEnabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v ImportAutofillFormData /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v ImportBrowserSettings /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v ImportCookies /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v ImportExtensions /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v ImportHistory /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v ImportHomepage /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v ImportOpenTabs /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v ImportPaymentInfo /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v ImportSavedPasswords /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v ImportSearchEngine /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v ImportShortcuts /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v AutoplayAllowed /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v DefaultWebUsbGuardSetting /t reg_dword /d 2 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v EnableMediaRouter /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v DefaultWebBluetoothGuardSetting /t reg_dword /d 2 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v AutofillCreditCardEnabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v AutofillAddressEnabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v EnableOnlineRevocationChecks /t reg_dword /d 1 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v PersonalizationReportingEnabled /t reg_dword /d 0 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v DefaultGeolocationSetting /t reg_dword /d 2 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v AllowDeletingBrowserHistory /t reg_dword /d 0 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v DeveloperToolsAvailability /t reg_dword /d 2 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v DownloadRestrictions /t reg_dword /d 2 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v ExtensionInstallBlocklist /t reg_sz /d * /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v PasswordManagerEnabled /t reg_dword /d 0 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v SSLErrorOverrideAllowed /t reg_dword /d 0 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v SSLVersionMin /t reg_sz /d tls1.2 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v SitePerProcess /t reg_dword /d 1 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v AuthSchemes /t reg_sz /d ntlm,negotiate /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v SmartScreenEnabled /t reg_dword /d 1 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v SmartScreenPuaEnabled /t reg_dword /d 1 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v PromptForDownloadLocation /t reg_dword /d 1 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v TrackingPrevention /t reg_dword /d 2 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v PaymentMethodQueryEnabled /t reg_dword /d 0 /f 
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v AlternateErrorPagesEnabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v UserFeedbackAllowed /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v EdgeCollectionsEnabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v ConfigureShare /t reg_dword /d 1 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v BrowserGuestModeEnabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v RelaunchNotification /t reg_dword /d 2 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v BuiltInDnsClientEnabled /t reg_dword /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v QuicAllowed /t reg_dword /d 0 /f
+
+#Windows Defender Settings
+reg delete "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows Defender" /v DisableAntiSpyware /f 
+set-mppreference -PUAProtection 1 
+set-mppreference -DisableAutoExclusions 0 
+set-mppreference -DisableBlockAtFirstSeen 0 
+Set-MpPreference -MAPSReporting Advanced
+Set-MpPreference -SubmitSamplesConsent SendAllSamples
+set-mppreference -DisableRemovableDriveScanning 0 
+set-mppreference -DisableEmailScanning 0 
+set-mppreference -ScanScheduleDay 7 
+set-mppreference -SignatureFirstAuGracePeriod 7
+set-mppreference -SignatureAuGracePeriod 7
+set-mppreference -SignatureScheduleDay 0 
+set-mppreference -UnknownThreatDefaultAction 3
+set-mppreference -LowThreatDefaultAction 3
+set-mppreference -ModerateThreatDefaultAction 3
+set-mppreference -HighThreatDefaultAction 3
+set-mppreference -SevereThreatDefaultAction 3
+add-MPPreference -AttackSurfaceReductionRules_Ids BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550 -AttackSurfaceReductionRules_Actions 1
+Add-MpPreference -AttackSurfaceReductionRules_Ids D4F940AB-401B-4EFC-AADC-AD5F3C50688A -AttackSurfaceReductionRules_Actions 1 
+Add-MpPreference -AttackSurfaceReductionRules_Ids 3B576869-A4EC-4529-8536-B80A7769E899 -AttackSurfaceReductionRules_Actions 1 
+Add-MpPreference -AttackSurfaceReductionRules_Ids 75668C1F-73B5-4CF0-BB93-3ECF5CB7CC84 -AttackSurfaceReductionRules_Actions 1 
+Add-MpPreference -AttackSurfaceReductionRules_Ids D3E037E1-3EB8-44C8-A917-57927947596D -AttackSurfaceReductionRules_Actions 1 
+Add-MpPreference -AttackSurfaceReductionRules_Ids 5BEB7EFE-FD9A-4556-801D-275E5FFC04CC -AttackSurfaceReductionRules_Actions 1 
+Add-MpPreference -AttackSurfaceReductionRules_Ids 92E97FA1-2EDF-4476-BDD6-9DD0B4DDDC7B -AttackSurfaceReductionRules_Actions 1 
+Add-MpPreference -AttackSurfaceReductionRules_Ids 7674BA52-37EB-4A4F-A9A1-F0F9A1619A2C -AttackSurfaceReductionRules_Actions 1 
+Set-MpPreference -EnableNetworkProtection Enabled
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows Defender\Signature Updates" /f
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows Defender\Signature Updates" /v ASSignatureDue /t reg_dword /d 7 /f 
+reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows Defender\Signature Updates" /v AVSignatureDue /t reg_dword /d 7 /f 
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows Defender\Exclusions' /v DisableAutoExclusions /t reg_dword /d 0 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows Defender\Spynet' /v DisableBlockAtFirstSeen /t reg_dword /d 0 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows Defender\Spynet' /v SpynetReporting /t reg_dword /d 2 /f 
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows Defender\Spynet' /v SubmitSamplesConsent /t reg_dword /d 1 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows Defender\Scan' /v ScheduleDay /t reg_dword /d 7 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows Defender\Signature Updates' /v ScheduleDay /t reg_dword /d 0 /f  
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows Defender\Threats\ThreatSeverityDefaultAction' /v 5 /t reg_sz /d 3 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows Defender\Threats\ThreatSeverityDefaultAction' /v 4 /t reg_sz /d 3 /f 
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows Defender\Threats\ThreatSeverityDefaultAction' /v 2 /t reg_sz /d 3 /f 
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows Defender\Threats\ThreatSeverityDefaultAction' /v 1 /t reg_sz /d 3 /f 
+
+
+cd c:\windows\security\database\
+invoke-webrequest https://matsontemptorage.blob.core.windows.net/tempcontainer1/secpol.cfg -outfile .\secpol.cfg 
+secedit.exe /configure /db secedit.sdb /cfg secpol.cfg /overwrite /log .\secedit.log /quiet
+
+
+#Settings that are missing from cis hardening script
+reg add 'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa' /v restrictremotesam /t reg_sz /d 'O:BAG:BAD:(A;;RC;;;BA)' /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System' /v EnableLUA /t reg_dword /d 1 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' /v AutoAdminLogon /t reg_dword /d 0 /f 
+reg add 'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager' /v SafeDllSearchMode /t reg_dword /d 1 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Winlogon' /v ScreenSaverGracePeriod /t reg_dword /d 5 /f 
+reg add 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System' /v DisableBkGndGroupPolicy /t reg_dword /d 0 /f
+reg add 'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager:SafeDllSearchMode' /v SafeDllSearchMode /t reg_dword /d 0 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Winlogon' /v ScreenSaverGracePeriod /t reg_dword /d 5 /f
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Network Connections' /v NC_ShowSharedAccessUI /t reg_dword /d 0 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Network Connections' /v NC_StdDomainUserSetLocation /t reg_dword /d 1 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\WcmSvc\GroupPolicy' /v fMinimizeConnections /t reg_dword /d 3 /f
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit' /v ProcessCreationIncludeCmdLine_Enabled /t reg_dword /d 0 /f
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\CredSSP\Parameters' /v AllowEncryptionOracle /t reg_dword /d 0 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Group Policy\{35378EAC-683F-11D2-A89A-00C04FBBCFA2}' /v NoBackgroundPolicy /t reg_dword /d 0 /f 
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Group Policy\{35378EAC-683F-11D2-A89A-00C04FBBCFA2}' /v NoGPOListChanges /t reg_dword /d 0 /f 
+reg add 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System' /v DisableBkGndGroupPolicy /t reg_dword /d 0 /f 
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\Printers' /v DisableWebPnPDownload /t reg_dword /d 1 /f 
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Power\PowerSettings\0e796bdb-100d-47d6-a2d5-f7d2daa51f51' /v DCSettingIndex /t reg_dword /d 1 /f 
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Power\PowerSettings\0e796bdb-100d-47d6-a2d5-f7d2daa51f51' /v ACSettingIndex /t reg_dword /d 1 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Connect' /v RequirePinForPairing  /t reg_dword /d 2 /f 
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\DataCollection' /v AllowTelemetry /t reg_dword /d 0 /f 
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\EventLog\System' /v MaxSize /t reg_dword /d 1000000 /f 
+reg add 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer' /v PreXPSP2ShellProtocolBehavior /t reg_dword /d 0 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection' /v DisableBehaviorMonitoring /t reg_dword /d 0 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender\Scan' /v DisableRemovableDriveScanning /t reg_dword /d 0 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender\Scan' /v DisableEmailScanning  /t reg_dword /d 0 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules' /v b2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4 /t reg_sz /d 1 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules' /v D4F940AB-401B-4EFC-AADC-AD5F3C50688A /t reg_sz /d 1 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules' /v 3B576869-A4EC-4529-8536-B80A7769E899 /t reg_sz /d 1 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules' /v 75668C1F-73B5-4CF0-BB93-3ECF5CB7CC84 /t reg_sz /d 1 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules' /v D3E037E1-3EB8-44C8-A917-57927947596D /t reg_sz /d 1 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules' /v 5BEB7EFE-FD9A-4556-801D-275E5FFC04CC /t reg_sz /d 1 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules' /v 92E97FA1-2EDF-4476-BDD6-9DD0B4DDDC7B /t reg_sz /d 1 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules' /v 7674BA52-37EB-4A4F-A9A1-F0F9A1619A2C /t reg_sz /d 1 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender' /v PUAProtection /t reg_dword /d 1 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender' /v DisableAntiSpyware /t reg_dword /d 0 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsInkWorkspace' /v AllowWindowsInkWorkspace /t reg_dword /d 0 /f 
+reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Installer' /v AlwaysInstallElevated /t reg_dword /d 0 /f 
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\WindowsUpdate\AU' /v NoAutoUpdate /t reg_dword /d 0 /f 
+reg add 'HKEY_USERS\S-1-5-21-2775466605-671285758-2506867301-500\Software\Policies\Microsoft\Windows\Control Panel\Desktop' /v ScreenSaveActive /t reg_sz /d 1 /f 
+reg add 'HKEY_USERS\S-1-5-21-2775466605-671285758-2506867301-500\Software\Policies\Microsoft\Windows\Control Panel\Desktop' /v SCRNSAVE.EXE /t reg_sz /d scrnsave.scr /f
+reg add 'HKEY_USERS\S-1-5-21-2775466605-671285758-2506867301-500\Software\Policies\Microsoft\Windows\Control Panel\Desktop' /v ScreenSaverIsSecure /t reg_sz /d 1 /f 
+reg add 'HKEY_USERS\S-1-5-21-2775466605-671285758-2506867301-500\Software\Policies\Microsoft\Windows\Control Panel\Desktop' /v ScreenSaveTimeOut /t reg_sz /d 900 /f
+reg add 'HKEY_USERS\S-1-5-21-2775466605-671285758-2506867301-500\Software\Policies\Microsoft\Windows\CurrentVersion\PushNotifications' /v NoToastApplicationNotificationOnLockScreen /t reg_dword /d 1 /f
+reg add 'HKEY_USERS\S-1-5-21-2775466605-671285758-2506867301-500\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments' /v SaveZoneInformation /t reg_dword /d 2 /f 
+reg add 'HKEY_USERS\S-1-5-21-2775466605-671285758-2506867301-500\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments' /v ScanWithAntiVirus /t reg_dword /d 3 /f
+reg add 'HKEY_USERS\S-1-5-21-2775466605-671285758-2506867301-500\Software\Policies\Microsoft\Windows\CloudContent' /v ConfigureWindowsSpotlight	/t reg_dword /d 2 /f
+reg add 'HKEY_USERS\S-1-5-21-2775466605-671285758-2506867301-500\Software\Policies\Microsoft\Windows\CloudContent' /v DisableThirdPartySuggestions /t reg_dword /d 1 /f
+reg add 'HKEY_USERS\S-1-5-21-2775466605-671285758-2506867301-500\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer' /v NoInplaceSharing /t reg_dword /d 1 /f
+reg add 'HKEY_USERS\S-1-5-21-2775466605-671285758-2506867301-500\Software\Policies\Microsoft\Windows\Installer' /v AlwaysInstallElevated /t reg_dword /d 0 /f
+
+#set firewall settings
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\DomainProfile' /v DefaultInboundAction /t reg_dword /d 1 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\DomainProfile' /v defaultOutboundAction /t reg_dword /d 0 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\DomainProfile' /v DisableNotifications /t reg_dword /d 1 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\DomainProfile\Logging' /v LogFilePath /t reg_sz /d '%SystemRoot%\System32\logfiles\firewall\domainfw.log' /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\DomainProfile\Logging' /v LogFileSize  /t reg_dword /d 16384 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\DomainProfile\Logging' /v LogDroppedPackets  /t reg_dword /d 1 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\DomainProfile\Logging' /v LogSuccessfulConnections /t reg_dword /d 1 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\PrivateProfile' /v DefaultInboundAction /t reg_dword /d 1 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\PrivateProfile' /v defaultOutboundAction /t reg_dword /d 0 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\PrivateProfile' /v DisableNotifications /t reg_dword /d 1 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\PrivateProfile\Logging' /v LogFilePath /t reg_sz /d '%SystemRoot%\System32\logfiles\firewall\privatefw.log' /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\PrivateProfile\Logging' /v LogFileSize  /t reg_dword /d 16384 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\PrivateProfile\Logging' /v LogDroppedPackets  /t reg_dword /d 1 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\PrivateProfile\Logging' /v LogSuccessfulConnections /t reg_dword /d 1 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\PublicProfile' /v DefaultInboundAction /t reg_dword /d 1 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\PublicProfile' /v defaultOutboundAction /t reg_dword /d 0 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\PublicProfile' /v DisableNotifications /t reg_dword /d 1 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\PublicProfile' /v AllowLocalPolicyMerge /t reg_dword /d 0 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\PublicProfile' /v AllowLocalIPsecPolicyMerge /t reg_dword /d 0 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\PublicProfile\Logging' /v LogFilePath /t reg_sz /d '%SystemRoot%\System32\logfiles\firewall\publicfw.log' /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\PublicProfile\Logging' /v LogFileSize  /t reg_dword /d 16384 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\PublicProfile\Logging' /v LogDroppedPackets  /t reg_dword /d 1 /f
+reg add 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsFirewall\PublicProfile\Logging' /v LogSuccessfulConnections /t reg_dword /d 1 /f
+
+
+
+
+
+
+
+
+
