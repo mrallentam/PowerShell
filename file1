@@ -1,0 +1,106 @@
+
+set-azureaduser -objectid $user -physicaldeliveryofficename $string
+clear-variable -name string
+}
+
+#>
+set-psdebug set-psdebug
+#>import-module azuread
+
+$appid="83e8e2a6-45df-4a15-921c-23e066b9e92f"
+$tenantid="032c0190-9b24-49f2-b7fc-27fad11e8caa"
+$certname="Jeniusiamtest1"
+$thumb="7BF92F300DA3145728DB3B44BCC27ABCB6536773"
+#connect with managed identity, create context and access token
+connect-azuread -applicationid $appid -TenantId $tenantid -certificatethumbprint $thumb 
+
+
+$sp = (get-azureadserviceprincipal -filter "displayname eq 'FS1 D1 Banker - JB'").objectid
+$pi = Get-AzureADServiceapproleassignedto -ObjectId $sp | select -ExpandProperty PrincipalId
+
+$displayname1 = (get-azureadgroup -objectid $pi[0]).displayname
+$displayname2 = (get-azureadgroup -objectid $pi[1]).displayname
+$displayname3 = (get-azureadgroup -objectid $pi[2]).displayname
+$displayname4 = (get-azureadgroup -objectid $pi[3]).displayname
+$displayname5 = (get-azureadgroup -objectid $pi[4]).displayname
+$displayname6 = (get-azureadgroup -objectid $pi[5]).displayname
+
+[array]$u1 = (get-azureadgroupmember -objectid $pi[0]).objectid
+[array]$u2 = (get-azureadgroupmember -objectid $pi[1]).objectid
+[array]$u3 = (get-azureadgroupmember -objectid $pi[2]).objectid
+[array]$u4 = (get-azureadgroupmember -objectid $pi[3]).objectid
+[array]$u5 = (get-azureadgroupmember -objectid $pi[4]).objectid
+[array]$u6 = (get-azureadgroupmember -objectid $pi[5]).objectid
+[array]$users=$u1+$u2+$u3+$u4+$u5+$u6|select-object -Unique
+foreach ($user in $users){
+$memberships = (get-azureaduser -objectid $user).objectid
+ if ($memberships -eq $pi[0]){
+ $memberships
+    $output =$displayname1
+ 
+if ($memberships -eq $pi[1]){
+    $output = "$displayname2,$output"
+    }
+if  ("," -eq $output.substring(1)){
+    $output=$output.trimend(","` )
+    }
+if ($memberships -eq $pi[2]){
+    $output = "$displayname3,$output"
+    }
+if  ("," -eq $output.substring(1)){
+    $output= $output.trimend(",")
+    }
+if ($memberships -eq $pi[3]){
+    $output = "$displayname4,$output"
+    }
+if  ("," -eq $output.substring(1)){
+    $output=$output.trimend(",")
+    }
+if ($memberships -eq $pi[4]){
+    $output = "$displayname5,$output"
+    }
+if  ("," -eq $output.substring(1)){
+    $output=$output.trimend(",")
+    }
+if ($memberships -eq $pi[5]){
+    $output = "$displayname6,$output"
+    }
+if  ("," -eq $output.substring(1)){
+    $output = $output.trimend(",")
+    }}}
+
+$output=$output -replace " ",""
+$output2=$output -split ","
+$output3=(get-azureaduser -objectid $user).officelocation
+if ($output3 -eq $null){
+    set-azureaduser -objectid $user -physicaldeliveryofficename $output
+    break
+    }
+    else {
+$output4=$output3 -split "," 
+$compare1=compare-object $output2 $output4
+$input1=($compare1|where-object {$_.sideindicator -eq "<="}).inputobject
+
+$join=$input1 -join ","
+$join2=$join.trimend(",")
+$input2="$output3,$join2"
+$input3=$input2 -replace "/s".""
+set-azureaduser -objectid $user -physicaldeliveryofficename $output
+
+
+clear-variable -name string
+clear-variable -name string2
+clear-variable -name string3
+clear-variable -name string4
+clear-variable -name compare1
+clear-variable -name join
+clear-variable -name join2
+clear-variable -name input1
+clear-variable -name input2
+
+$output=$output -replace '\s',''
+write-output $output
+set-azureaduser -objectid $user -physicaldeliveryofficename $output
+clear-variable -name string
+}
+
